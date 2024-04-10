@@ -1,0 +1,17 @@
+version: "3"
+
+services:
+  valence-processor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: valence-processor
+    environment:
+    - PYTHONUNBUFFERED=1
+    - ID=valence-processor
+    networks:
+      - custom_network
+
+networks:
+  custom_network:
+    external: true
