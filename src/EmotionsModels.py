@@ -1,7 +1,7 @@
 import onnx
 from onnxruntime import backend
-from feat import Detector
-from feat.utils import FEAT_EMOTION_COLUMNS
+# from feat import Detector
+# from feat.utils import FEAT_EMOTION_COLUMNS
 from scipy.special import softmax
 import numpy as np
 import cv2
@@ -43,36 +43,36 @@ class FerplusModel:
 
 
 
-class PyfeatModel:
-    def __init__(self):
-        face_model = "retinaface"
-        landmark_model = "mobilenet"
-        au_model = "xgb"
-        emotion_model = "resmasknet"
-        detector = Detector(face_model = face_model, landmark_model = landmark_model, au_model = au_model, emotion_model = emotion_model)
-        self.model = detector
-        self.emotions_list  = FEAT_EMOTION_COLUMNS
+# class PyfeatModel:
+#     def __init__(self):
+#         face_model = "retinaface"
+#         landmark_model = "mobilenet"
+#         au_model = "xgb"
+#         emotion_model = "resmasknet"
+#         detector = Detector(face_model = face_model, landmark_model = landmark_model, au_model = au_model, emotion_model = emotion_model)
+#         self.model = detector
+#         self.emotions_list  = FEAT_EMOTION_COLUMNS
 
-    def preprocess_emotions(self, emotions):
-        face_info = emotions[0][0]
-        map_emotions = {}
-        i = 0
-        for emotion in self.emotions_list: 
-            map_emotions[emotion] = face_info[i]
-            i += 1
-        return map_emotions
+#     def preprocess_emotions(self, emotions):
+#         face_info = emotions[0][0]
+#         map_emotions = {}
+#         i = 0
+#         for emotion in self.emotions_list: 
+#             map_emotions[emotion] = face_info[i]
+#             i += 1
+#         return map_emotions
 
-    def calculate_emotions(self, image_bytes):
+#     def calculate_emotions(self, image_bytes):
         
 
-        # Crear un flujo de bytes desde los datos codificados
-        image_stream = io.BytesIO(image_bytes)
+#         # Crear un flujo de bytes desde los datos codificados
+#         image_stream = io.BytesIO(image_bytes)
 
-        # Abrir la imagen desde el flujo de bytes utilizando PIL/Pillow
-        img = Image.open(image_stream)
-        detected_faces = self.model.detect_faces(img)
-        detected_landmarks = self.model.detect_landmarks(img, detected_faces)
-        emotions = self.model.detect_emotions(img, detected_faces, detected_landmarks)
-        emotions = self.preprocess_emotions(emotions)
-        return emotions
+#         # Abrir la imagen desde el flujo de bytes utilizando PIL/Pillow
+#         img = Image.open(image_stream)
+#         detected_faces = self.model.detect_faces(img)
+#         detected_landmarks = self.model.detect_landmarks(img, detected_faces)
+#         emotions = self.model.detect_emotions(img, detected_faces, detected_landmarks)
+#         emotions = self.preprocess_emotions(emotions)
+#         return emotions
        
