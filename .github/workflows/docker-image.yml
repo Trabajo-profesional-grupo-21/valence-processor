@@ -1,0 +1,28 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches:
+      - "main"
+    tags:
+      - 'staging'
+
+    
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Login to Digital Ocean Container Registry
+      run: docker login -u "${{ secrets.ACCESS_TOKEN }}" -p "${{ secrets.ACCESS_TOKEN }}" registry.digitalocean.com
+      
+    - name: Build the Docker image
+      run: docker build -t registry.digitalocean.com/g21-test-cr/valence-processor .
+
+    - name: Push Docker image
+      run: docker push registry.digitalocean.com/g21-test-cr/valence-processor
