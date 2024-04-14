@@ -12,6 +12,7 @@ class ValenceCalculator():
     def __init__(self, valence_model: str):
         #Todo: tener en cuenta si se tiene varias insatancias instancias de la api 
         self.model: EmotionPredictor = self.load_model(valence_model)
+        logging.info(f"MODELO INSTANCIADO")
         self.emotion_table = {'neutral':0, 'happiness':1, 'surprise':2, 
                               'sadness':3, 'anger':4, 'disgust':5, 'fear':6, 
                               'contempt':7}

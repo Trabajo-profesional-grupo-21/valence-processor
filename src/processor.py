@@ -8,6 +8,7 @@ import numpy as np
 import cv2
 import os
 from dotenv import load_dotenv
+from multiprocessing import Process, Queue
 
 
 INT_LENGTH = 4
@@ -17,7 +18,6 @@ class Processor():
         load_dotenv()
         self.running = True
         signal.signal(signal.SIGTERM, self._handle_sigterm)
-
         self.counter = 0
         self.connection = Connection()
         self.input_queue = self.connection.Subscriber("frames", "fanout", "valence_frames")
@@ -32,6 +32,14 @@ class Processor():
         logging.info('SIGTERM received - Shutting server down')
         self.connection.close()
 
+    def _process_image(self, frame_id, img_list, result_queue):
+        nparr = np.array(img_list, dtype=np.uint8)
+        image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        image_bytes = cv2.imencode('.jpg', image)[1].tobytes()
+        valence, emotions = self.valenceCalculator.predict_valence(image_bytes)
+        logging.info(f"Resultados frame {frame_id} -- Valence {valence} -- emociones {emotions}")
+        result_queue.put((frame_id, {"valence": valence, "emotions": emotions}))
+        
     def _callback(self, body, ack_tag):
         # logging.info(f"Received frame: {self.counter}")
         body = json.loads(body.decode())
@@ -39,17 +47,24 @@ class Processor():
         logging.info(len(body["batch"]))
         batch_info = {}
         output_json = {}
-        for frame_id, img_queue in body["batch"].items():
-            nparr = np.frombuffer(bytes(img_queue), np.uint8)
-            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
-            image_bytes = cv2.imencode('.jpg', image)[1].tobytes()
+        result_queue = Queue()
 
-            
-            valence, emotions = self.valenceCalculator.predict_valence(image_bytes)
-            logging.info(f"Resultados frame {self.counter} -- Valence {valence} -- emociones {emotions}")
-            batch_info[frame_id] = {"valence": valence, "emotions": emotions}
-            self.counter += 1
+        # Procesar cada imagen en paralelo
+        processes = []
+        for frame_id, img_list in body["batch"].items():
+            process = Process(target=self._process_image, args=(frame_id, img_list, result_queue))
+            process.start()
+            processes.append(process)
+
+        # Esperar a que todos los procesos terminen
+        for process in processes:
+            process.join()
+
+        # Recolectar resultados de la cola de mensajes
+        while not result_queue.empty():
+            frame_id, result_data = result_queue.get()
+            batch_info[frame_id] = result_data
 
         logging.info(f"user id {body['user_id']} and user_batch {body['batch_id']}")
         output_json["user_id"] = body["user_id"]
