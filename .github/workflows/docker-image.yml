@@ -18,11 +18,11 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: Login to Digital Ocean Container Registry
-      run: docker login -u "${{ secrets.ACCESS_TOKEN }}" -p "${{ secrets.ACCESS_TOKEN }}" registry.digitalocean.com
+    - name: Login to Docker Hub
+      run: echo "${{ secrets.DOCKER_ACCESS_TOKEN }}" | docker login -u tu-usuario --password-stdin
       
     - name: Build the Docker image
-      run: docker build -t registry.digitalocean.com/g21-test-cr/valence-processor .
+      run: docker build -t tppg21/valence-processor:$(git rev-parse --short HEAD) .
 
     - name: Push Docker image
-      run: docker push registry.digitalocean.com/g21-test-cr/valence-processor
+      run: docker push tppg21/valence-processor:$(git rev-parse --short HEAD)

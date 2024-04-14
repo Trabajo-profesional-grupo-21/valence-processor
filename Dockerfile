@@ -20,7 +20,7 @@ RUN pip3 install opencv-python
 RUN pip3 install onnx
 RUN pip3 install onnxruntime
 RUN pip3 install scipy
-# RUN pip3 install py-feat
+RUN pip3 install py-feat
 RUN pip3 install python-dotenv
 
 RUN pip3 install git+https://github.com/Trabajo-profesional-grupo-21/common.git@0.0.2#egg=common

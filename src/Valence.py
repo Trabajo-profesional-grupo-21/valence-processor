@@ -3,9 +3,8 @@ import logging
 import numpy as np
 from scipy.special import softmax
 import cv2
-# from feat import Detector
-# from .EmotionsModels import EmotionPredictor, FerplusModel, PyfeatModel
-from .EmotionsModels import EmotionPredictor, FerplusModel
+from feat import Detector
+from .EmotionsModels import EmotionPredictor, FerplusModel, PyfeatModel
 
 
 
