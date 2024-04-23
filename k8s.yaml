@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: valence-processor
 spec:
-  replicas: 5
+  replicas: 3
   selector:
     matchLabels:
       app: valence-processor
@@ -26,5 +26,5 @@ spec:
           limits:
             memory: "1000Mi" # Límite máximo de uso de memoria
           requests:
-            cpu: "500m" # Cantidad mínima de CPU requerida
+            cpu: "1000m" # Cantidad mínima de CPU requerida
             memory: "500Mi" # Cantidad mínima de memoria requerida
