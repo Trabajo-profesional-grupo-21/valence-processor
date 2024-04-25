@@ -8,7 +8,7 @@ RUN pip3 install pika
 RUN pip3 install ujson
 # RUN pip3 install torch>=1.4.0
 # RUN pip3 install torchvision
-# RUN pip3 install pillow
+RUN pip3 install pillow
 # RUN pip3 install numpy
 # RUN pip3 install tqdm
 # RUN pip3 install timm
@@ -23,7 +23,7 @@ RUN pip3 install scipy
 RUN pip3 install py-feat
 RUN pip3 install python-dotenv
 
-RUN pip3 install git+https://github.com/Trabajo-profesional-grupo-21/common.git@0.0.1#egg=common
+RUN pip3 install git+https://github.com/Trabajo-profesional-grupo-21/common.git@0.0.3#egg=common
 
 COPY / /
 
