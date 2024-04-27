@@ -20,13 +20,25 @@ class Processor():
         signal.signal(signal.SIGTERM, self._handle_sigterm)
 
         self.counter = 0
-        # self.connection = Connection(host="rabbitmq-0.rabbitmq.default.svc.cluster.local", port=5672)
-        self.connection = Connection(host='moose.rmq.cloudamqp.com', port=5672, virtual_host="zacfsxvy", user="zacfsxvy", password="zfCu8hS9snVGmySGhtvIVeMi6uvYssih")
-        self.input_queue = self.connection.Subscriber("frames", "fanout", "valence_frames")
-        self.output_queue = self.connection.Producer(queue_name="processed")
         self.valenceCalculator = ValenceCalculator(os.getenv('VALENCE_MODEL'))
         self.arousalCalculator = ArousalCalculator()
         self.fps_tracker = FpsTracker()
+        self.init_conn()
+
+    def init_conn(self):
+        remote_rabbit = os.getenv('REMOTE_RABBIT', False)
+        if remote_rabbit:
+            self.connection = Connection(host=os.getenv('RABBIT_HOST'), 
+                                    port=os.getenv('RABBIT_PORT'),
+                                    virtual_host=os.getenv('RABBIT_VHOST'), 
+                                    user=os.getenv('RABBIT_USER'), 
+                                    password=os.getenv('RABBIT_PASSWORD'))
+        else:
+            # selfconnection = Connection(host="rabbitmq-0.rabbitmq.default.svc.cluster.local", port=5672)
+            self.connection = Connection(host="rabbitmq", port=5672)
+        
+        self.input_queue = self.connection.Subscriber("frames", "fanout", "valence_frames")
+        self.output_queue = self.connection.Producer(queue_name="processed")
 
     def _handle_sigterm(self, *args):
         """
@@ -42,13 +54,21 @@ class Processor():
         # logging.info(len(body["batch"]))
         batch_info = {}
         output_json = {}
+
+        first = 0
+        middle = len(body) // 2
+        
         for frame_id, img_queue in body["batch"].items():
             self.fps_tracker.add_frame()
+
+            if int(frame_id) != first and int(frame_id) != middle:
+                batch_info[frame_id] = {"valence": valence, "emotions": emotions}
+                continue
+
             nparr = np.frombuffer(bytes(img_queue), np.uint8)
             image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
             image_bytes = cv2.imencode('.jpg', image)[1].tobytes()
-
             
             valence, emotions = self.valenceCalculator.predict_valence(image_bytes)
             # logging.info(f"Resultados frame {self.counter} -- Valence {valence} -- emociones {emotions}")
@@ -60,7 +80,7 @@ class Processor():
         output_json["batch_id"] = body["batch_id"]
         output_json["origin"] = "valence"
         output_json["replies"] = batch_info
-        logging.info(f"FPS: {self.fps_tracker.get_fps()}")
+        logging.info(f"FPS: {self.fps_tracker.get_fps()} | Batch: {body['batch_id']}")
         self.output_queue.send(json.dumps(output_json, default=str))
 		    
     
