@@ -49,22 +49,27 @@ class Processor():
 
     def _callback(self, body, ack_tag):
         # logging.info(f"Received frame: {self.counter}")
-        body = json.loads(body.decode())
-        # logging.info(type(body))
-        # logging.info(len(body["batch"]))
+        decoded = body.decode()
+        body_dec = json.loads(decoded)
+
+        if "EOF" in body_dec:
+            self.output_queue.send(decoded)
+            return
+
         batch_info = {}
         output_json = {}
 
         first = 0
-        middle = len(body) // 2
+        middle = len(body_dec) // 2
         
-        for frame_id, img_queue in body["batch"].items():
+        for frame_id, img_queue in body_dec["batch"].items():
             self.fps_tracker.add_frame()
 
             if int(frame_id) != first and int(frame_id) != middle:
-                batch_info[frame_id] = {"valence": valence, "emotions": emotions}
+                batch_info[frame_id] = {"valence": None, "emotions": emotions}
                 continue
 
+            #TODO: Check de no cambiarla
             nparr = np.frombuffer(bytes(img_queue), np.uint8)
             image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
@@ -75,12 +80,13 @@ class Processor():
             batch_info[frame_id] = {"valence": valence, "emotions": emotions}
             self.counter += 1
 
-        # logging.info(f"user id {body['user_id']} and user_batch {body['batch_id']}")
-        output_json["user_id"] = body["user_id"]
-        output_json["batch_id"] = body["batch_id"]
+
+        # logging.info(f"user id {body_dec['user_id']} and user_batch {body_dec['batch_id']}")
+        output_json["user_id"] = body_dec["user_id"]
+        output_json["batch_id"] = body_dec["batch_id"]
         output_json["origin"] = "valence"
         output_json["replies"] = batch_info
-        logging.info(f"FPS: {self.fps_tracker.get_fps()} | Batch: {body['batch_id']}")
+        logging.info(f"FPS: {self.fps_tracker.get_fps()} | Batch: {body_dec['batch_id']}")
         self.output_queue.send(json.dumps(output_json, default=str))
 		    
     
