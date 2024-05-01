@@ -21,7 +21,7 @@ class Processor():
 
         self.counter = 0
         # self.connection = Connection(host="rabbitmq-0.rabbitmq.default.svc.cluster.local", port=5672)
-        self.connection = Connection(host='moose.rmq.cloudamqp.com', port=5672, virtual_host="zacfsxvy", user="zacfsxvy", password="zfCu8hS9snVGmySGhtvIVeMi6uvYssih")
+        self.connection = Connection(host='rabbitmq')
         self.input_queue = self.connection.Subscriber("frames", "fanout", "valence_frames")
         self.output_queue = self.connection.Producer(queue_name="processed")
         self.valenceCalculator = ValenceCalculator(os.getenv('VALENCE_MODEL'))
