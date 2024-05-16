@@ -47,6 +47,47 @@ class Processor():
         logging.info('SIGTERM received - Shutting server down')
         self.connection.close()
 
+    def process_img(self, img_body):
+        image_bytes = img_body["img"]["0"]
+        image_reply = {}
+        nparr = np.frombuffer(bytes(image_bytes), np.uint8)
+
+        image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        image_bytes = cv2.imencode('.jpg', image)[1].tobytes()
+
+        valence, emotions = self.valenceCalculator.predict_valence(image_bytes)
+        image_reply[0] = {"valence": valence, "emotions": emotions}
+
+        output_json = {}
+        output_json["user_id"] = img_body["user_id"]
+        output_json["img_name"] = img_body["img_name"]
+        output_json["origin"] = "valence"
+        output_json["reply"] = image_reply
+
+        self.output_queue.send(json.dumps(output_json, default=str))
+
+    def process_batch(self, batch_body):
+        batch_info = {}
+        output_json = {}
+        for frame_id, img_queue in batch_body["batch"].items():
+            self.fps_tracker.add_frame()
+            nparr = np.frombuffer(bytes(img_queue), np.uint8)
+
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            image_bytes = cv2.imencode('.jpg', image)[1].tobytes()
+
+            valence, emotions = self.valenceCalculator.predict_valence(image_bytes)
+            batch_info[frame_id] = {"valence": valence, "emotions": emotions}
+            self.counter += 1
+
+        output_json["user_id"] = batch_body["user_id"]
+        output_json["batch_id"] = batch_body["batch_id"]
+        output_json["origin"] = "valence"
+        output_json["replies"] = batch_info
+        logging.info(f"FPS: {self.fps_tracker.get_fps()}")
+        self.output_queue.send(json.dumps(output_json, default=str))
+
+
     def _callback(self, body, ack_tag):
         decoded = body.decode()
         body_dec = json.loads(decoded)
@@ -55,30 +96,11 @@ class Processor():
             self.output_queue.send(decoded)
             return
         
+        if "img" in body_dec:
+            self.process_img(body_dec)
+        elif "batch" in body_dec:
+            self.process_batch(body_dec)
 
-        batch_info = {}
-        output_json = {}
-        for frame_id, img_queue in body_dec["batch"].items():
-            self.fps_tracker.add_frame()
-            nparr = np.frombuffer(bytes(img_queue), np.uint8)
-            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-
-            image_bytes = cv2.imencode('.jpg', image)[1].tobytes()
-
-            
-            valence, emotions = self.valenceCalculator.predict_valence(image_bytes)
-            # logging.info(f"Resultados frame {self.counter} -- Valence {valence} -- emociones {emotions}")
-            batch_info[frame_id] = {"valence": valence, "emotions": emotions}
-            self.counter += 1
-
-        # logging.info(f"user id {body_dec['user_id']} and user_batch {body_dec['batch_id']}")
-        output_json["user_id"] = body_dec["user_id"]
-        output_json["batch_id"] = body_dec["batch_id"]
-        output_json["origin"] = "valence"
-        output_json["replies"] = batch_info
-        logging.info(f"FPS: {self.fps_tracker.get_fps()}")
-        self.output_queue.send(json.dumps(output_json, default=str))
-		    
     
     def calculate_quadrant(self, arousal, valence):
         if valence >= 0 and arousal >= 0.5:
