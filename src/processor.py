@@ -20,13 +20,25 @@ class Processor():
         signal.signal(signal.SIGTERM, self._handle_sigterm)
 
         self.counter = 0
-        # self.connection = Connection(host="rabbitmq-0.rabbitmq.default.svc.cluster.local", port=5672)
-        self.connection = Connection(host='moose.rmq.cloudamqp.com', port=5672, virtual_host="zacfsxvy", user="zacfsxvy", password="zfCu8hS9snVGmySGhtvIVeMi6uvYssih")
-        self.input_queue = self.connection.Subscriber("frames", "fanout", "valence_frames")
-        self.output_queue = self.connection.Producer(queue_name="processed")
         self.valenceCalculator = ValenceCalculator(os.getenv('VALENCE_MODEL'))
         self.arousalCalculator = ArousalCalculator()
         self.fps_tracker = FpsTracker()
+        self.init_conn()
+
+    def init_conn(self):
+        remote_rabbit = os.getenv('REMOTE_RABBIT', False)
+        if remote_rabbit:
+            self.connection = Connection(host=os.getenv('RABBIT_HOST'), 
+                                    port=os.getenv('RABBIT_PORT'),
+                                    virtual_host=os.getenv('RABBIT_VHOST'), 
+                                    user=os.getenv('RABBIT_USER'), 
+                                    password=os.getenv('RABBIT_PASSWORD'))
+        else:
+            # selfconnection = Connection(host="rabbitmq-0.rabbitmq.default.svc.cluster.local", port=5672)
+            self.connection = Connection(host="rabbitmq", port=5672)
+
+        self.input_queue = self.connection.Subscriber("frames", "fanout", "valence_frames")
+        self.output_queue = self.connection.Producer(queue_name="processed")
 
     def _handle_sigterm(self, *args):
         """
@@ -35,34 +47,60 @@ class Processor():
         logging.info('SIGTERM received - Shutting server down')
         self.connection.close()
 
-    def _callback(self, body, ack_tag):
-        # logging.info(f"Received frame: {self.counter}")
-        body = json.loads(body.decode())
-        # logging.info(type(body))
-        # logging.info(len(body["batch"]))
+    def process_img(self, img_body):
+        image_bytes = img_body["img"]["0"]
+        image_reply = {}
+        nparr = np.frombuffer(bytes(image_bytes), np.uint8)
+
+        image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        image_bytes = cv2.imencode('.jpg', image)[1].tobytes()
+
+        valence, emotions = self.valenceCalculator.predict_valence(image_bytes)
+        image_reply[0] = {"valence": valence, "emotions": emotions}
+
+        output_json = {}
+        output_json["user_id"] = img_body["user_id"]
+        output_json["img_name"] = img_body["img_name"]
+        output_json["origin"] = "valence"
+        output_json["reply"] = image_reply
+
+        self.output_queue.send(json.dumps(output_json, default=str))
+
+    def process_batch(self, batch_body):
         batch_info = {}
         output_json = {}
-        for frame_id, img_queue in body["batch"].items():
+        for frame_id, img_queue in batch_body["batch"].items():
             self.fps_tracker.add_frame()
             nparr = np.frombuffer(bytes(img_queue), np.uint8)
-            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
             image_bytes = cv2.imencode('.jpg', image)[1].tobytes()
 
-            
             valence, emotions = self.valenceCalculator.predict_valence(image_bytes)
-            # logging.info(f"Resultados frame {self.counter} -- Valence {valence} -- emociones {emotions}")
             batch_info[frame_id] = {"valence": valence, "emotions": emotions}
             self.counter += 1
 
-        # logging.info(f"user id {body['user_id']} and user_batch {body['batch_id']}")
-        output_json["user_id"] = body["user_id"]
-        output_json["batch_id"] = body["batch_id"]
+        output_json["user_id"] = batch_body["user_id"]
+        output_json["batch_id"] = batch_body["batch_id"]
         output_json["origin"] = "valence"
         output_json["replies"] = batch_info
         logging.info(f"FPS: {self.fps_tracker.get_fps()}")
         self.output_queue.send(json.dumps(output_json, default=str))
-		    
+
+
+    def _callback(self, body, ack_tag):
+        decoded = body.decode()
+        body_dec = json.loads(decoded)
+
+        if "EOF" in body_dec:
+            self.output_queue.send(decoded)
+            return
+        
+        if "img" in body_dec:
+            self.process_img(body_dec)
+        elif "batch" in body_dec:
+            self.process_batch(body_dec)
+
     
     def calculate_quadrant(self, arousal, valence):
         if valence >= 0 and arousal >= 0.5:
