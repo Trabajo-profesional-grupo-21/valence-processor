@@ -1,3 +1,4 @@
+import logging
 import onnx
 from onnxruntime import backend
 from feat import Detector
@@ -8,6 +9,9 @@ import cv2
 from PIL import Image
 import io
 from abc import abstractmethod
+
+from .Exceptions import MissingFace
+
 
 class EmotionPredictor:
     @abstractmethod
@@ -42,7 +46,6 @@ class FerplusModel:
         return emotions
 
 
-
 class PyfeatModel:
     def __init__(self):
         face_model = "retinaface"
@@ -56,21 +59,21 @@ class PyfeatModel:
     def preprocess_emotions(self, emotions):
         face_info = emotions[0][0]
         map_emotions = {}
-        i = 0
-        for emotion in self.emotions_list: 
+        for i, emotion in enumerate(self.emotions_list): 
             map_emotions[emotion] = face_info[i]
-            i += 1
+
         return map_emotions
 
     def calculate_emotions(self, image_bytes):
-        
-
         # Crear un flujo de bytes desde los datos codificados
         image_stream = io.BytesIO(image_bytes)
 
         # Abrir la imagen desde el flujo de bytes utilizando PIL/Pillow
         img = Image.open(image_stream)
         detected_faces = self.model.detect_faces(img)
+        if len(detected_faces[0]) == 0:
+            raise MissingFace()
+    
         detected_landmarks = self.model.detect_landmarks(img, detected_faces)
         emotions = self.model.detect_emotions(img, detected_faces, detected_landmarks)
         emotions = self.preprocess_emotions(emotions)

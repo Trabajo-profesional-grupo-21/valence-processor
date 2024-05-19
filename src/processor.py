@@ -9,6 +9,7 @@ import numpy as np
 import cv2
 import os
 from dotenv import load_dotenv
+from .Exceptions import MissingFace
 
 
 INT_LENGTH = 4
@@ -76,7 +77,14 @@ class Processor():
             image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
             image_bytes = cv2.imencode('.jpg', image)[1].tobytes()
 
-            valence, emotions = self.valenceCalculator.predict_valence(image_bytes)
+            try:
+                valence, emotions = self.valenceCalculator.predict_valence(image_bytes)
+            except MissingFace:
+                valence = "Missing Face"
+                emotions = "Missing Face"
+            except Exception as err:
+                raise err
+            # logging.info(f"Valence: {valence}")
             batch_info[frame_id] = {"valence": valence, "emotions": emotions}
             self.counter += 1
 
@@ -84,8 +92,9 @@ class Processor():
         output_json["batch_id"] = batch_body["batch_id"]
         output_json["origin"] = "valence"
         output_json["replies"] = batch_info
-        logging.info(f"FPS: {self.fps_tracker.get_fps()}")
+        # logging.info(f"FPS: {self.fps_tracker.get_fps()}")
         self.output_queue.send(json.dumps(output_json, default=str))
+
 
 
     def _callback(self, body, ack_tag):

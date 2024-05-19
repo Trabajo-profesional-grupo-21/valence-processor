@@ -5,7 +5,7 @@ from scipy.special import softmax
 import cv2
 from feat import Detector
 from .EmotionsModels import EmotionPredictor, FerplusModel, PyfeatModel
-
+from .Exceptions import MissingFace
 
 
 class ValenceCalculator():
@@ -38,10 +38,15 @@ class ValenceCalculator():
         return valence
     
     def predict_valence(self, image_bytes):
-        emotions = self.model.calculate_emotions(image_bytes)
-        valence = self.calculate_valence(emotions)
-        #logging.info(f"Valencia {valence}")
-        return valence, emotions
+        try:
+            emotions = self.model.calculate_emotions(image_bytes)
+            valence = self.calculate_valence(emotions)
+            #logging.info(f"Valencia {valence}")
+            return valence, emotions
+        except MissingFace as err:
+            raise err
+        except Exception as err:
+            raise err
 
     def load_model(self, valence_model: str):
         if valence_model == 'FERPLUS':
