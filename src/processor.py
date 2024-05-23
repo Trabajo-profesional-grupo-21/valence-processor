@@ -62,6 +62,8 @@ class Processor():
         output_json = {}
         output_json["user_id"] = img_body["user_id"]
         output_json["img_name"] = img_body["img_name"]
+        output_json["file_name"] = img_body["file_name"]
+        output_json["upload"] = img_body["upload"]
         output_json["origin"] = "valence"
         output_json["reply"] = image_reply
 
@@ -90,6 +92,8 @@ class Processor():
 
         output_json["user_id"] = batch_body["user_id"]
         output_json["batch_id"] = batch_body["batch_id"]
+        output_json["file_name"] = batch_body["file_name"]
+        output_json["upload"] = batch_body["upload"]
         output_json["origin"] = "valence"
         output_json["replies"] = batch_info
         # logging.info(f"FPS: {self.fps_tracker.get_fps()}")
