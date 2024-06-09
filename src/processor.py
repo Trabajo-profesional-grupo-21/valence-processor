@@ -7,33 +7,31 @@ import signal
 import logging
 import numpy as np
 import cv2
-import os
-from dotenv import load_dotenv
 from .Exceptions import MissingFace
+from .config.config import settings
 
 
 INT_LENGTH = 4
 
 class Processor():
     def __init__(self):
-        load_dotenv()
         self.running = True
         signal.signal(signal.SIGTERM, self._handle_sigterm)
 
         self.counter = 0
-        self.valenceCalculator = ValenceCalculator(os.getenv('VALENCE_MODEL'))
+        self.valenceCalculator = ValenceCalculator(settings.VALENCE_MODEL)
         self.arousalCalculator = ArousalCalculator()
         self.fps_tracker = FpsTracker()
         self.init_conn()
 
     def init_conn(self):
-        remote_rabbit = os.getenv('REMOTE_RABBIT', False)
+        remote_rabbit = settings.REMOTE_RABBIT
         if remote_rabbit:
-            self.connection = Connection(host=os.getenv('RABBIT_HOST'), 
-                                    port=os.getenv('RABBIT_PORT'),
-                                    virtual_host=os.getenv('RABBIT_VHOST'), 
-                                    user=os.getenv('RABBIT_USER'), 
-                                    password=os.getenv('RABBIT_PASSWORD'))
+            self.connection = Connection(host=settings.RABBIT_HOST, 
+                                    port=settings.RABBIT_PORT,
+                                    virtual_host=settings.RABBIT_VHOST, 
+                                    user=settings.RABBIT_USER, 
+                                    password=settings.RABBIT_PASSWORD)
         else:
             # selfconnection = Connection(host="rabbitmq-0.rabbitmq.default.svc.cluster.local", port=5672)
             self.connection = Connection(host="rabbitmq", port=5672)
