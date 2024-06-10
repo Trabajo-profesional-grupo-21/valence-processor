@@ -25,19 +25,22 @@ class Processor():
         self.init_conn()
 
     def init_conn(self):
-        remote_rabbit = settings.REMOTE_RABBIT
-        if remote_rabbit:
-            self.connection = Connection(host=settings.RABBIT_HOST, 
-                                    port=settings.RABBIT_PORT,
-                                    virtual_host=settings.RABBIT_VHOST, 
-                                    user=settings.RABBIT_USER, 
-                                    password=settings.RABBIT_PASSWORD)
-        else:
-            # selfconnection = Connection(host="rabbitmq-0.rabbitmq.default.svc.cluster.local", port=5672)
-            self.connection = Connection(host="rabbitmq", port=5672)
+        try:
+            remote_rabbit = settings.REMOTE_RABBIT
+            if remote_rabbit:
+                self.connection = Connection(host=settings.RABBIT_HOST, 
+                                        port=settings.RABBIT_PORT,
+                                        virtual_host=settings.RABBIT_VHOST, 
+                                        user=settings.RABBIT_USER, 
+                                        password=settings.RABBIT_PASSWORD)
+            else:
+                # selfconnection = Connection(host="rabbitmq-0.rabbitmq.default.svc.cluster.local", port=5672)
+                self.connection = Connection(host="rabbitmq", port=5672)
 
-        self.input_queue = self.connection.Subscriber("frames", "fanout", "valence_frames")
-        self.output_queue = self.connection.Producer(queue_name="processed")
+            self.input_queue = self.connection.Subscriber("frames", "fanout", "valence_frames")
+            self.output_queue = self.connection.Producer(queue_name="processed")
+        except Exception as e:
+            raise Exception("Error initializing RabbitMQ. You must start the Rabbit service first")
 
     def _handle_sigterm(self, *args):
         """

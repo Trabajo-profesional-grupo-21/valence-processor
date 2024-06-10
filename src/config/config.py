@@ -1,4 +1,5 @@
-from pydantic_settings import BaseSettings, validator
+from pydantic_settings import BaseSettings
+from pydantic import validator
 
 class Settings(BaseSettings):
 
@@ -10,6 +11,8 @@ class Settings(BaseSettings):
     RABBIT_VHOST: str | None = None
     RABBIT_USER: str | None = None
     RABBIT_PASSWORD: str | None = None
+
+    LOGGING_LEVEL: str | None = 'INFO'
 
     @validator('VALENCE_MODEL')
     def validate_valence_model(cls, value):

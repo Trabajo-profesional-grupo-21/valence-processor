@@ -10,7 +10,7 @@ services:
     - PYTHONUNBUFFERED=1
     - ID=valence-processor
     volumes:
-      - feat_resources_volume:/usr/local/lib/python3.9/site-packages/feat/resources
+      - feat_resources_volume:/usr/local/lib/python3.11/site-packages/feat/resources
     networks:
       - custom_network
 
