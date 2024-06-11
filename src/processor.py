@@ -9,9 +9,7 @@ import numpy as np
 import cv2
 from .Exceptions import MissingFace
 from .config.config import settings
-
-
-INT_LENGTH = 4
+import time
 
 class Processor():
     def __init__(self):
@@ -24,23 +22,29 @@ class Processor():
         self.fps_tracker = FpsTracker()
         self.init_conn()
 
-    def init_conn(self):
-        try:
-            remote_rabbit = settings.REMOTE_RABBIT
-            if remote_rabbit:
-                self.connection = Connection(host=settings.RABBIT_HOST, 
-                                        port=settings.RABBIT_PORT,
-                                        virtual_host=settings.RABBIT_VHOST, 
-                                        user=settings.RABBIT_USER, 
-                                        password=settings.RABBIT_PASSWORD)
-            else:
-                # selfconnection = Connection(host="rabbitmq-0.rabbitmq.default.svc.cluster.local", port=5672)
-                self.connection = Connection(host="rabbitmq", port=5672)
+    def init_conn(self, retries = 10, delay = 5):
+        for attempt in range(retries):
+            try:
+                remote_rabbit = settings.REMOTE_RABBIT
+                if remote_rabbit:
+                    self.connection = Connection(host=settings.RABBIT_HOST, 
+                                            port=settings.RABBIT_PORT,
+                                            virtual_host=settings.RABBIT_VHOST, 
+                                            user=settings.RABBIT_USER, 
+                                            password=settings.RABBIT_PASSWORD)
+                else:
+                    self.connection = Connection(host="rabbitmq", port=5672)
 
-            self.input_queue = self.connection.Subscriber("frames", "fanout", "valence_frames")
-            self.output_queue = self.connection.Producer(queue_name="processed")
-        except Exception as e:
-            raise Exception("Error initializing RabbitMQ. You must start the Rabbit service first")
+                self.input_queue = self.connection.Subscriber("frames", "fanout", "valence_frames")
+                self.output_queue = self.connection.Producer(queue_name="processed")
+                break
+
+            except Exception as e:
+                print(f"RabbitMQ connection attempt {attempt + 1} failed: {e}")
+                if attempt < retries - 1:
+                    time.sleep(delay)
+                else:
+                    raise e
 
     def _handle_sigterm(self, *args):
         """

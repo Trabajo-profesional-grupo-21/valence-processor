@@ -15,7 +15,7 @@ RUN pip3 install py-feat
 RUN pip3 install pydantic-settings
 RUN pip3 install pydantic
 
-RUN pip3 install git+https://github.com/Trabajo-profesional-grupo-21/common.git@0.0.3#egg=common
+RUN pip3 install git+https://github.com/Trabajo-profesional-grupo-21/common.git@1.0.0#egg=common
 
 COPY / /
 
