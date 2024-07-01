@@ -1,9 +1,9 @@
 import logging
 import onnx
 from onnxruntime import backend
+#from scipy.special import softmax
 from feat import Detector
 from feat.utils import FEAT_EMOTION_COLUMNS
-from scipy.special import softmax
 import numpy as np
 import cv2
 from PIL import Image
@@ -12,6 +12,9 @@ from abc import abstractmethod
 
 from .Exceptions import MissingFace
 
+def softmax(x):
+    e_x = np.exp(x - np.max(x))
+    return e_x / e_x.sum(axis=0)
 
 class EmotionPredictor:
     @abstractmethod

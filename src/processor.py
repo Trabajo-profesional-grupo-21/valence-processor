@@ -87,8 +87,8 @@ class Processor():
             try:
                 valence, emotions = self.valenceCalculator.predict_valence(image_bytes)
             except MissingFace:
-                valence = "Missing Face"
-                emotions = "Missing Face"
+                valence = "0.00"
+                emotions =  { "anger": "0", "disgust": "0", "fear": "0","happiness": "0","sadness": "0","surprise": "0","neutral": "0"}
             except Exception as err:
                 raise err
             # logging.info(f"Valence: {valence}")

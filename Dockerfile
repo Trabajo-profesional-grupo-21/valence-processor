@@ -4,23 +4,24 @@ RUN apt-get update && apt-get install -y libglib2.0-0 libsm6 libxext6 libxrender
 RUN apt-get install -y git
 
 RUN pip install --upgrade pip
-RUN pip3 install pika
-RUN pip3 install ujson
-RUN pip3 install pillow
-RUN pip3 install opencv-python
-RUN pip3 install onnx
-RUN pip3 install onnxruntime
-RUN pip3 install scipy
-RUN pip3 install py-feat
-RUN pip3 install pydantic-settings
-RUN pip3 install pydantic
+RUN pip install scipy==1.11.0
+RUN pip install py-feat
+RUN pip install pika
+RUN pip install ujson
+RUN pip install pillow
+RUN pip install opencv-python
+RUN pip install onnx
+RUN pip install onnxruntime
+RUN pip install pydantic-settings
+RUN pip install pydantic
 
-RUN pip3 install git+https://github.com/Trabajo-profesional-grupo-21/common.git@1.0.0#egg=common
+RUN pip install git+https://github.com/Trabajo-profesional-grupo-21/common.git@1.0.0#egg=common
 
 COPY / /
 
 ENV PYTHONPATH="${PYTHONPATH}:/app/src"
 
 VOLUME /src
+
 
 CMD ["python3", "./main.py"]
